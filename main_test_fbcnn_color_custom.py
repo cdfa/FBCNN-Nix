@@ -6,10 +6,8 @@ import torch
 from utils import utils_logger
 from utils import utils_image as util
 import requests
-from patchify import patchify, unpatchify # todo: maybe without?
 import pyexiv2
 import math
-import itertools
 
 
 def main():
@@ -82,18 +80,15 @@ def main():
         img_L_shape = np.asarray(img_L).shape
         img_width = img_L_shape[1]
         img_height = img_L_shape[0]
-        max_patch_width = 1990656 / img_height
-        min_columns = math.ceil(img_width / max_patch_width)
-        for columns in itertools.count(start=min_columns):
-            if img_width % columns == 0:
-                break
+        patch_width = math.floor(2000000 / img_height)
+        columns = math.ceil(img_width / patch_width)
 
         logger.info("columns: {:d}".format(columns))
-        patch_width = math.floor(img_width / columns)
-        patches = patchify(img_L, (img_height, patch_width, 3), step=patch_width)
+        starts = range(0, img_width, patch_width)
+        ends = list(range(patch_width, img_width, patch_width)) + [img_width]
+        patches = [img_L[:, start:end, :] for (start, end) in zip(starts, ends)]
 
-        for i, patch in enumerate(patches[0]):
-            patch = patch[0]
+        for i, patch in enumerate(patches):
             img_L = util.uint2tensor4(patch)
             img_L = img_L.to(device)
 
@@ -107,16 +102,16 @@ def main():
             img_E = util.tensor2single(img_E)
             img_E = util.single2uint(img_E)
             logger.info("predicted quality factor: {:d}".format(round(float(QF * 100))))
-            patches[0][i][0] = img_E
+            patches[i] = img_E
 
-        img_E = unpatchify(patches, img_L_shape)
+        img_E = np.concatenate(patches, axis=1)
 
         util.imsave(img_E, out_path)
 
         img_E_metadata = pyexiv2.ImageMetadata(out_path)
         img_E_metadata.read()
         for key, tag in img_L_metadata.items():
-            img_E_metadata[key] = tag.value # todo: raw value for xmp tags?
+            img_E_metadata[key] = tag.value
         
         img_E_metadata.write()
 
