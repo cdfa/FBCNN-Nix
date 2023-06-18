@@ -13,10 +13,10 @@
         let
           pkgs = import "${nixpkgs}" {
             inherit system;
-            config = {
-              allowUnfree = true;
-              cudaSupport = true;
-            };
+            # config = {
+            #   allowUnfree = true;
+            #   cudaSupport = true;
+            # };
           };
 
           nixGL = import "${nixGLSource}" { inherit pkgs; };

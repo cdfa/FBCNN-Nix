@@ -10,6 +10,64 @@
 
 *[Computer Vision Lab](https://vision.ee.ethz.ch/), [ETH Zurich, Switzerland](https://ethz.ch/en.html)*
 
+### **This is a fork version that helps with installation and evaluating FBCNN locally**
+
+I added an environment definition with [Nix](nixos.org/) and added `main_test_fbcnn_color_custom.py` which does the same as `main_test_fbcnn_color_real.py`, but it slices images in columns so they fit in GPU memory and it copies EXIF tags from the original pictures.
+
+#### Setup Environment
+
+The environment is defined as a Nix flake.
+To enabled flakes, add the following to your `/etc/nix/nix.conf`:
+```toml
+experimental-features = nix-command flakes
+```
+
+I also recommend adding `max-jobs = auto` for parallelism.
+
+If you want to enable CUDA-support, uncomment the following lines in `flake.nix`:
+```nix
+config = {
+    allowUnfree = true;
+    cudaSupport = true;
+};
+```
+
+You can enter the environment using `nix develop --impure` or `direnv allow` if you have direnv installed.
+If something does not work, you can try using the nixpkgs commit that worked for me (on `x86_64-linux`) by uncommenting the line with `nixpkgs.url =` in `flake.nix`.
+
+#### Setup Files
+
+Download the following files:
+- [fbcnn_color.pth](https://github.com/jiaxi-jiang/FBCNN/releases/download/v1.0/fbcnn_color.pth)
+- [fbcnn_gray.pth](https://github.com/jiaxi-jiang/FBCNN/releases/download/v1.0/fbcnn_gray.pth)
+- [fbcnn_gray_double.pth](https://github.com/jiaxi-jiang/FBCNN/releases/download/v1.0/fbcnn_gray_double.pth)
+
+File Structure:
+```
+📂FBCNN-main/ # repo root
+└── 📂model_zoo/
+    ├── 📜fbcnn_color.pth
+    ├── 📜fbcnn_gray.pth
+    └── 📜fbcnn_gray_double.pth
+```
+
+Usage
+----------
+
+Put your images under `testsets/custom` and run
+```bash
+nixGL python main_test_fbcnn_color_custom.py
+```
+
+You can omit `nixGL` if you are not using CUDA.
+All results would be under `test_results/custom`.
+
+`main_test_fbcnn_color_custom` will automatically slice your images in columns to run the model with limited VRAM.
+Currently it is configured for 4GB, but you can tweak the number in `patch_width = math.floor(2000000 / img_height)` for what works best on your machine.
+
+
+### This is the end of my fork edit.
+
 ________
 [Training](#training), [Testing](#testing)
 
